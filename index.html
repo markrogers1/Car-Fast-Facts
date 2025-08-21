@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Car Fast Facts — Presenter</title>
+<meta name="theme-color" content="#0b0b0c" />
+<style>
+  :root{
+    --bg:#0b0b0c; --fg:#f4f3ef; --muted:#9aa0a6;
+    --accent:#ff7a00; --accent2:#34c759; --card:#141518;
+    --pad:14px; --radius:18px; --gap:12px;
+    --title: clamp(20px, 4.8vw, 28px);
+    --big: clamp(28px, 8.5vw, 54px);
+    --mid: clamp(16px, 3.9vw, 22px);
+    --small: clamp(12px, 3.2vw, 16px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
+    color:var(--fg); background:var(--bg); overflow:hidden;
+  }
+  .app{display:flex; flex-direction:column; height:100dvh; padding: max(env(safe-area-inset-top),12px) max(env(safe-area-inset-right),12px) max(env(safe-area-inset-bottom),12px) max(env(safe-area-inset-left),12px);}
+  header{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom: var(--gap);
+  }
+  .titleWrap{min-width:0}
+  .brand{font-size:var(--small); color:var(--muted); letter-spacing:.08em; text-transform:uppercase}
+  .title{
+    font-size:var(--title); font-weight:700; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .sub{font-size:var(--small); color:var(--muted)}
+  .btn{
+    appearance:none; border:0; border-radius:14px; padding:10px 14px; font-weight:650;
+    background:var(--card); color:var(--fg); font-size:var(--small); display:inline-flex; align-items:center; gap:8px;
+  }
+  .btn.accent{background:var(--accent); color:#111}
+  .strip{
+    display:grid; grid-template-columns:1fr; gap:var(--gap); overflow:auto; -webkit-overflow-scrolling:touch;
+    scroll-snap-type:y mandatory; padding-bottom:4px;
+  }
+  .card{
+    background:var(--card); border-radius:var(--radius); padding:16px var(--pad);
+    display:flex; align-items:baseline; justify-content:space-between; gap:12px; scroll-snap-align:start;
+  }
+  .label{color:var(--muted); font-size:var(--small); letter-spacing:.06em; text-transform:uppercase}
+  .value{font-size:var(--big); font-weight:800; line-height:1}
+  .unit{font-size: clamp(12px, 3.2vw, 16px); color:var(--muted); margin-left:8px; font-weight:600}
+  .row{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:var(--gap)}
+  .pill{padding:6px 10px; border-radius:999px; background:#1b1c20; font-size:var(--small); color:var(--muted)}
+  .toolbar{
+    display:flex; gap:8px; flex-wrap:wrap;
+  }
+  .toggle{background:#1b1c20}
+  .hidden{display:none !important;}
+  /* Editor sheet */
+  .sheet{
+    position:fixed; inset:auto 0 0 0; background:var(--card); border-radius:16px 16px 0 0; transform:translateY(102%);
+    transition:transform .35s ease; box-shadow:0 -12px 40px rgba(0,0,0,.45); padding:12px;
+    max-height:82dvh; overflow:auto;
+  }
+  .sheet.open{transform:translateY(0);}
+  .grab{width:46px; height:5px; background:#2a2b31; border-radius:6px; margin:6px auto 12px;}
+  .f{display:grid; gap:8px; grid-template-columns:1fr 1fr;}
+  .f .full{grid-column:1 / -1;}
+  label{font-size:12px; color:var(--muted)}
+  input, select, textarea{
+    width:100%; padding:12px; border-radius:12px; border:1px solid #27282d; background:#0f1013; color:var(--fg);
+    font-size:16px;
+  }
+  .presBadge{
+    position:fixed; top:10px; right:10px; background:var(--accent2); color:#08130a; padding:6px 10px; border-radius:999px; font-weight:700; font-size:12px;
+  }
+  .footerNote{color:var(--muted); font-size:12px; text-align:center; margin-top:8px}
+  .danger{background:#f43f5e; color:#17171a}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header>
+    <div class="titleWrap">
+      <div class="brand" id="brand">Porsche</div>
+      <div class="title" id="title">992.2 GT3</div>
+      <div class="sub" id="subtitle">2025 • RWD • 7-spd PDK</div>
+    </div>
+    <div class="toolbar">
+      <button class="btn toggle" id="toggleUnits">Units: Metric</button>
+      <button class="btn" id="carsBtn">Cars</button>
+      <button class="btn accent" id="editBtn">Edit</button>
+    </div>
+  </header>
+
+  <main class="strip" id="strip" tabindex="0">
+    <!-- Top essentials -->
+    <div class="card">
+      <div>
+        <div class="label">Power</div>
+        <div class="row"><span class="value" id="powerVal">386</span><span class="unit" id="powerUnit">kW</span></div>
+      </div>
+      <div>
+        <div class="label">Torque</div>
+        <div class="row"><span class="value" id="torqueVal">470</span><span class="unit" id="torqueUnit">Nm</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div>
+        <div class="label">0–100</div>
+        <div class="row"><span class="value" id="zero100Val">3.4</span><span class="unit">s</span></div>
+      </div>
+      <div>
+        <div class="label">0–60</div>
+        <div class="row"><span class="value" id="zero60Val">3.2</span><span class="unit">s</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div>
+        <div class="label">Top Speed</div>
+        <div class="row"><span class="value" id="topSpeedVal">318</span><span class="unit" id="tsUnit">km/h</span></div>
+      </div>
+      <div>
+        <div class="label">Weight</div>
+        <div class="row"><span class="value" id="weightVal">1435</span><span class="unit" id="wtUnit">kg</span></div>
+      </div>
+    </div>
+
+    <div class="card grid">
+      <div>
+        <div class="label">Engine</div>
+        <div class="row"><span class="value" id="engineVal" style="font-size:var(--mid);">4.0L NA flat-6</span></div>
+      </div>
+      <div>
+        <div class="label">Induction</div>
+        <div class="row"><span class="value" id="inductionVal" style="font-size:var(--mid);">Naturally aspirated</span></div>
+      </div>
+      <div>
+        <div class="label">Transmission</div>
+        <div class="row"><span class="value" id="transVal" style="font-size:var(--mid);">PDK (7)</span></div>
+      </div>
+      <div>
+        <div class="label">Drivetrain</div>
+        <div class="row"><span class="value" id="driveVal" style="font-size:var(--mid);">RWD</span></div>
+      </div>
+    </div>
+
+    <div class="card grid">
+      <div>
+        <div class="label">Quarter Mile</div>
+        <div class="row"><span class="value" id="qtrVal" style="font-size:var(--mid);">11.2 s (est.)</span></div>
+      </div>
+      <div>
+        <div class="label">Brakes</div>
+        <div class="row"><span class="value" id="brakeVal" style="font-size:var(--mid);">410/390 mm</span></div>
+      </div>
+      <div>
+        <div class="label">Tyres</div>
+        <div class="row"><span class="value" id="tyreVal" style="font-size:var(--mid);">255/35R20 • 315/30R21</span></div>
+      </div>
+      <div>
+        <div class="label">Price (AUD)</div>
+        <div class="row"><span class="value" id="priceVal" style="font-size:var(--mid);">$510k as tested</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="gap:10px; align-items:center;">
+        <span class="pill" id="note1">Track pack</span>
+        <span class="pill" id="note2">Front-axle lift</span>
+        <span class="pill" id="note3">Bucket seats</span>
+      </div>
+    </div>
+
+    <div class="footerNote">Tip: tap any big number to copy. Long-press anywhere to toggle Presenter Mode.</div>
+  </main>
+
+  <div class="presBadge hidden" id="presBadge">Presenter Mode</div>
+
+  <!-- Editor Sheet -->
+  <section class="sheet" id="sheet" aria-hidden="true">
+    <div class="grab"></div>
+    <form id="form" class="f">
+      <div class="full">
+        <label>Preset <small>(save/recall)</small></label>
+        <div style="display:flex; gap:8px;">
+          <select id="presetSelect" style="flex:1"></select>
+          <button type="button" class="btn" id="savePreset">Save</button>
+          <button type="button" class="btn danger" id="deletePreset">Delete</button>
+        </div>
+      </div>
+
+      <div>
+        <label>Brand</label>
+        <input id="f_brand" placeholder="Porsche" />
+      </div>
+      <div>
+        <label>Model</label>
+        <input id="f_model" placeholder="992.2 GT3" />
+      </div>
+      <div>
+        <label>Subtitle</label>
+        <input id="f_sub" placeholder="2025 • RWD • 7-spd PDK" />
+      </div>
+
+      <div>
+        <label>Power (kW)</label>
+        <input id="f_kw" type="number" step="0.1" />
+      </div>
+      <div>
+        <label>Torque (Nm)</label>
+        <input id="f_nm" type="number" step="1" />
+      </div>
+
+      <div>
+        <label>0–100 km/h (s)</label>
+        <input id="f_0100" type="number" step="0.01" />
+      </div>
+      <div>
+        <label>0–60 mph (s)</label>
+        <input id="f_060" type="number" step="0.01" />
+      </div>
+
+      <div>
+        <label>Top Speed (km/h)</label>
+        <input id="f_tskmh" type="number" step="1" />
+      </div>
+      <div>
+        <label>Weight (kg)</label>
+        <input id="f_wtkg" type="number" step="1" />
+      </div>
+
+      <div>
+        <label>Engine</label>
+        <input id="f_engine" placeholder="4.0L NA flat-6" />
+      </div>
+      <div>
+        <label>Induction</label>
+        <input id="f_induction" placeholder="Naturally aspirated / Twin-turbo" />
+      </div>
+
+      <div>
+        <label>Transmission</label>
+        <input id="f_trans" placeholder="PDK (7) / 6-MT" />
+      </div>
+      <div>
+        <label>Drivetrain</label>
+        <input id="f_drive" placeholder="RWD / AWD" />
+      </div>
+
+      <div>
+        <label>Quarter Mile</label>
+        <input id="f_qtr" placeholder="11.2 s (est.)" />
+      </div>
+      <div>
+        <label>Brakes</label>
+        <input id="f_brake" placeholder="410/390 mm" />
+      </div>
+
+      <div class="full">
+        <label>Tyres</label>
+        <input id="f_tyre" placeholder="255/35R20 • 315/30R21" />
+      </div>
+
+      <div class="full">
+        <label>Price (AUD)</label>
+        <input id="f_price" placeholder="$510k as tested" />
+      </div>
+
+      <div>
+        <label>Note 1</label>
+        <input id="f_n1" placeholder="Track pack" />
+      </div>
+      <div>
+        <label>Note 2</label>
+        <input id="f_n2" placeholder="Front-axle lift" />
+      </div>
+      <div>
+        <label>Note 3</label>
+        <input id="f_n3" placeholder="Bucket seats" />
+      </div>
+
+      <div class="full" style="display:flex; gap:8px; margin-top:6px;">
+        <button type="submit" class="btn accent" style="flex:1">Apply</button>
+        <button type="button" class="btn" id="closeSheet" style="flex:1">Close</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    brand: $('brand'), title: $('title'), subtitle: $('subtitle'),
+    powerVal: $('powerVal'), torqueVal: $('torqueVal'),
+    zero100Val: $('zero100Val'), zero60Val: $('zero60Val'),
+    topSpeedVal: $('topSpeedVal'), weightVal: $('weightVal'),
+    engineVal: $('engineVal'), inductionVal: $('inductionVal'),
+    transVal: $('transVal'), driveVal: $('driveVal'),
+    qtrVal: $('qtrVal'), brakeVal: $('brakeVal'),
+    tyreVal: $('tyreVal'), priceVal: $('priceVal'),
+    note1: $('note1'), note2: $('note2'), note3: $('note3'),
+    powerUnit: $('powerUnit'), torqueUnit: $('torqueUnit'),
+    tsUnit: $('tsUnit'), wtUnit: $('wtUnit'),
+    toggleUnits: $('toggleUnits'), editBtn: $('editBtn'), sheet: $('sheet'),
+    closeSheet: $('closeSheet'), form: $('form'),
+    presetSelect: $('presetSelect'), savePreset: $('savePreset'), deletePreset: $('deletePreset'),
+    presBadge: $('presBadge'), carsBtn: $('carsBtn'), strip: $('strip')
+  };
+
+  // Editor fields
+  const f = {
+    brand: $('f_brand'), model: $('f_model'), sub: $('f_sub'),
+    kw: $('f_kw'), nm: $('f_nm'),
+    z100: $('f_0100'), z60: $('f_060'),
+    tskmh: $('f_tskmh'), wtkg: $('f_wtkg'),
+    engine: $('f_engine'), induction: $('f_induction'),
+    trans: $('f_trans'), drive: $('f_drive'),
+    qtr: $('f_qtr'), brake: $('f_brake'),
+    tyre: $('f_tyre'), price: $('f_price'),
+    n1: $('f_n1'), n2: $('f_n2'), n3: $('f_n3')
+  };
+
+  // Unit state
+  let metric = true;
+
+  // Default data (example GT3)
+  const defaults = {
+    brand:"Porsche", model:"992.2 GT3", sub:"2025 • RWD • 7-spd PDK",
+    kw:386, nm:470, z100:3.4, z60:3.2, tskmh:318, wtkg:1435,
+    engine:"4.0L NA flat-6", induction:"Naturally aspirated",
+    trans:"PDK (7)", drive:"RWD", qtr:"11.2 s (est.)", brake:"410/390 mm",
+    tyre:"255/35R20 • 315/30R21", price:"$510k as tested",
+    n1:"Track pack", n2:"Front-axle lift", n3:"Bucket seats"
+  };
+
+  // Storage helpers
+  const KEY = 'car-fast-facts:v1';
+  function loadAll(){ try{ return JSON.parse(localStorage.getItem(KEY)) || {presets:{}, currentId:null}; }catch{return {presets:{}, currentId:null};}}
+  function saveAll(data){ localStorage.setItem(KEY, JSON.stringify(data)); }
+  function upsertPreset(id, obj){
+    const all = loadAll(); all.presets[id]=obj; all.currentId=id; saveAll(all); populatePresetSelect();
+  }
+  function deletePreset(id){
+    const all=loadAll(); delete all.presets[id]; if(all.currentId===id){ all.currentId = Object.keys(all.presets)[0] || null; } saveAll(all); populatePresetSelect();
+  }
+  function getCurrent(){ const all=loadAll(); return (all.currentId && all.presets[all.currentId]) || null; }
+
+  function populatePresetSelect(){
+    const all=loadAll(); const sel = els.presetSelect;
+    sel.innerHTML = '';
+    const optNew = document.createElement('option');
+    optNew.value = ''; optNew.textContent = all.currentId ? all.currentId : 'New preset…';
+    if(!all.currentId) optNew.selected = true;
+    sel.appendChild(optNew);
+    for(const id of Object.keys(all.presets)){
+      const o = document.createElement('option'); o.value=id; o.textContent=id;
+      if(all.currentId===id) o.selected = true;
+      sel.appendChild(o);
+    }
+  }
+
+  // Rendering
+  function render(data){
+    els.brand.textContent = data.brand || '';
+    els.title.textContent = data.model || '';
+    els.subtitle.textContent = data.sub || '';
+
+    // Units:
+    const kw = Number(data.kw)||0;
+    const hp = kw * 1.34102209;
+    const nm = Number(data.nm)||0;
+    const lbft = nm * 0.737562149;
+    const tskmh = Number(data.tskmh)||0;
+    const ts_mph = tskmh * 0.621371;
+    const wtkg = Number(data.wtkg)||0;
+    const wtlb = wtkg * 2.20462262;
+
+    els.powerVal.textContent = metric ? round(kw) : round(hp);
+    els.powerUnit.textContent = metric ? 'kW' : 'hp';
+
+    els.torqueVal.textContent = metric ? round(nm) : round(lbft);
+    els.torqueUnit.textContent = metric ? 'Nm' : 'lb-ft';
+
+    els.topSpeedVal.textContent = metric ? round(tskmh) : round(ts_mph);
+    els.tsUnit.textContent = metric ? 'km/h' : 'mph';
+
+    els.weightVal.textContent = metric ? round(wtkg) : Math.round(wtlb).toString();
+    els.wtUnit.textContent = metric ? 'kg' : 'lb';
+
+    els.zero100Val.textContent = (Number(data.z100)||0).toFixed(1);
+    els.zero60Val.textContent = (Number(data.z60)||0).toFixed(1);
+
+    els.engineVal.textContent = data.engine || '';
+    els.inductionVal.textContent = data.induction || '';
+    els.transVal.textContent = data.trans || '';
+    els.driveVal.textContent = data.drive || '';
+    els.qtrVal.textContent = data.qtr || '';
+    els.brakeVal.textContent = data.brake || '';
+    els.tyreVal.textContent = data.tyre || '';
+    els.priceVal.textContent = data.price || '';
+    els.note1.textContent = data.n1 || '';
+    els.note2.textContent = data.n2 || '';
+    els.note3.textContent = data.n3 || '';
+  }
+  function round(n){ return Math.abs(n) >= 100 ? Math.round(n).toString() : (Math.round(n*10)/10).toString(); }
+
+  // Editor load/apply
+  function fillEditor(data){
+    f.brand.value = data.brand || ''; f.model.value = data.model || ''; f.sub.value = data.sub || '';
+    f.kw.value = data.kw ?? ''; f.nm.value = data.nm ?? '';
+    f.z100.value = data.z100 ?? ''; f.z60.value = data.z60 ?? '';
+    f.tskmh.value = data.tskmh ?? ''; f.wtkg.value = data.wtkg ?? '';
+    f.engine.value = data.engine || ''; f.induction.value = data.induction || '';
+    f.trans.value = data.trans || ''; f.drive.value = data.drive || '';
+    f.qtr.value = data.qtr || ''; f.brake.value = data.brake || '';
+    f.tyre.value = data.tyre || ''; f.price.value = data.price || '';
+    f.n1.value = data.n1 || ''; f.n2.value = data.n2 || ''; f.n3.value = data.n3 || '';
+  }
+  function readEditor(){
+    return {
+      brand:f.brand.value.trim(), model:f.model.value.trim(), sub:f.sub.value.trim(),
+      kw: num(f.kw.value), nm: num(f.nm.value),
+      z100: num(f.z100.value), z60: num(f.z60.value),
+      tskmh: num(f.tskmh.value), wtkg: num(f.wtkg.value),
+      engine:f.engine.value.trim(), induction:f.induction.value.trim(),
+      trans:f.trans.value.trim(), drive:f.drive.value.trim(),
+      qtr:f.qtr.value.trim(), brake:f.brake.value.trim(),
+      tyre:f.tyre.value.trim(), price:f.price.value.trim(),
+      n1:f.n1.value.trim(), n2:f.n2.value.trim(), n3:f.n3.value.trim()
+    };
+  }
+  function num(v){ const n = parseFloat(v); return isNaN(n)? '' : n; }
+
+  // Presenter mode
+  let presenter=false, uiHidden=false;
+  function setPresenter(on){
+    presenter = on;
+    els.presBadge.classList.toggle('hidden', !on);
+    // Hide toolbar & footer in presenter mode
+    document.querySelector('.toolbar').classList.toggle('hidden', on);
+    document.querySelector('.footerNote').classList.toggle('hidden', on);
+  }
+
+  // Events
+  els.toggleUnits.addEventListener('click', () => {
+    metric = !metric;
+    els.toggleUnits.textContent = 'Units: ' + (metric ? 'Metric' : 'Imperial');
+    const cur = getCurrent() || defaults; render(cur);
+  });
+
+  // Tap-to-copy on all .value
+  document.querySelectorAll('.value').forEach(v => {
+    v.addEventListener('click', () => {
+      const t = v.textContent;
+      navigator.clipboard?.writeText(t);
+      v.animate([{opacity:1},{opacity:.3},{opacity:1}], {duration:220});
+    });
+  });
+
+  // Long-press anywhere to toggle Presenter mode
+  let pressTimer;
+  document.body.addEventListener('touchstart', () => {
+    pressTimer = setTimeout(()=> setPresenter(!presenter), 600);
+  }, {passive:true});
+  document.body.addEventListener('touchend', () => clearTimeout(pressTimer), {passive:true});
+
+  // Sheet open/close
+  function openSheet(){ els.sheet.classList.add('open'); els.sheet.setAttribute('aria-hidden','false'); }
+  function closeSheet(){ els.sheet.classList.remove('open'); els.sheet.setAttribute('aria-hidden','true'); }
+  els.editBtn.addEventListener('click', ()=> { fillEditor(getCurrent()||defaults); openSheet(); });
+  els.closeSheet.addEventListener('click', closeSheet);
+
+  // Form submit
+  els.form.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const data = readEditor();
+    // Name preset automatically from Brand + Model
+    const id = (data.brand||'Car') + ' ' + (data.model||'Preset');
+    upsertPreset(id, data);
+    render(data);
+    closeSheet();
+  });
+
+  // Presets select
+  els.presetSelect.addEventListener('change', (e)=>{
+    const id = e.target.value;
+    const all = loadAll();
+    if(all.presets[id]){
+      all.currentId = id; saveAll(all);
+      render(all.presets[id]); fillEditor(all.presets[id]);
+    }
+  });
+  els.savePreset.addEventListener('click', ()=>{
+    const data = readEditor();
+    const id = prompt('Preset name?', (data.brand||'Car') + ' ' + (data.model||'Preset'));
+    if(!id) return;
+    upsertPreset(id, data); render(data); fillEditor(data);
+  });
+  els.deletePreset.addEventListener('click', ()=>{
+    const all = loadAll();
+    const id = els.presetSelect.value || all.currentId;
+    if(!id) return;
+    if(confirm(`Delete preset "${id}"?`)){
+      deletePreset(id);
+      const next = getCurrent() || defaults;
+      render(next); fillEditor(next);
+    }
+  });
+
+  // Cars button quickly cycles presets
+  els.carsBtn.addEventListener('click', ()=>{
+    const all = loadAll(); const ids = Object.keys(all.presets);
+    if(!ids.length) return;
+    const idx = Math.max(0, ids.indexOf(all.currentId));
+    const nextId = ids[(idx+1)%ids.length];
+    all.currentId = nextId; saveAll(all);
+    render(all.presets[nextId]);
+  });
+
+  // Keyboard scroll (for presenters with BT clicker)
+  document.addEventListener('keydown', (e)=>{
+    if(e.key==='ArrowDown' || e.key==='PageDown'){ els.strip.scrollBy({top: window.innerHeight*0.8, behavior:'smooth'}); }
+    if(e.key==='ArrowUp' || e.key==='PageUp'){ els.strip.scrollBy({top: -window.innerHeight*0.8, behavior:'smooth'}); }
+    if(e.key==='u'){ els.toggleUnits.click(); }
+    if(e.key==='p'){ setPresenter(!presenter); }
+  });
+
+  // Init
+  (function init(){
+    populatePresetSelect();
+    const cur = getCurrent();
+    if(cur){ render(cur); fillEditor(cur); }
+    else { render(defaults); fillEditor(defaults); }
+    // If URL has ?imperial=1 or ?metric=1
+    const params = new URLSearchParams(location.search);
+    if(params.get('imperial')==='1'){ metric=false; els.toggleUnits.click(); }
+    if(params.get('presenter')==='1'){ setPresenter(true); }
+  })();
+})();
+</script>
+</body>
+</html>
