@@ -50,12 +50,9 @@
   .row{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap}
   .grid{display:grid; grid-template-columns:1fr 1fr; gap:var(--gap)}
   .pill{padding:6px 10px; border-radius:999px; background:#1b1c20; font-size:var(--small); color:var(--muted)}
-  .toolbar{
-    display:flex; gap:8px; flex-wrap:wrap;
-  }
+  .toolbar{display:flex; gap:8px; flex-wrap:wrap;}
   .toggle{background:#1b1c20}
   .hidden{display:none !important;}
-  /* Editor sheet */
   .sheet{
     position:fixed; inset:auto 0 0 0; background:var(--card); border-radius:16px 16px 0 0; transform:translateY(102%);
     transition:transform .35s ease; box-shadow:0 -12px 40px rgba(0,0,0,.45); padding:12px;
@@ -105,13 +102,14 @@
       </div>
     </div>
 
+    <!-- Acceleration card: shows one metric depending on unit system -->
     <div class="card">
-      <div>
-        <div class="label">0–100</div>
+      <div data-accel="0100">
+        <div class="label">0–100 km/h</div>
         <div class="row"><span class="value" id="zero100Val">3.4</span><span class="unit">s</span></div>
       </div>
-      <div>
-        <div class="label">0–60</div>
+      <div data-accel="060">
+        <div class="label">0–60 mph</div>
         <div class="row"><span class="value" id="zero60Val">3.2</span><span class="unit">s</span></div>
       </div>
     </div>
@@ -368,7 +366,7 @@
     els.title.textContent = data.model || '';
     els.subtitle.textContent = data.sub || '';
 
-    // Units:
+    // Units conversions:
     const kw = Number(data.kw)||0;
     const hp = kw * 1.34102209;
     const nm = Number(data.nm)||0;
@@ -390,9 +388,17 @@
     els.weightVal.textContent = metric ? round(wtkg) : Math.round(wtlb).toString();
     els.wtUnit.textContent = metric ? 'kg' : 'lb';
 
-    els.zero100Val.textContent = (Number(data.z100)||0).toFixed(1);
-    els.zero60Val.textContent = (Number(data.z60)||0).toFixed(1);
+    // Acceleration display: show exactly ONE based on unit system
+    const accel0100 = document.querySelector('[data-accel="0100"]');
+    const accel060  = document.querySelector('[data-accel="060"]');
+    accel0100.classList.toggle('hidden', !metric);
+    accel060.classList.toggle('hidden', metric);
 
+    // Values (entered as raw seconds)
+    els.zero100Val.textContent = formatSec(data.z100);
+    els.zero60Val.textContent  = formatSec(data.z60);
+
+    // Other text fields
     els.engineVal.textContent = data.engine || '';
     els.inductionVal.textContent = data.induction || '';
     els.transVal.textContent = data.trans || '';
@@ -405,7 +411,9 @@
     els.note2.textContent = data.n2 || '';
     els.note3.textContent = data.n3 || '';
   }
+
   function round(n){ return Math.abs(n) >= 100 ? Math.round(n).toString() : (Math.round(n*10)/10).toString(); }
+  function formatSec(v){ const n = Number(v); return isNaN(n) ? '' : n.toFixed(1); }
 
   // Editor load/apply
   function fillEditor(data){
@@ -435,11 +443,10 @@
   function num(v){ const n = parseFloat(v); return isNaN(n)? '' : n; }
 
   // Presenter mode
-  let presenter=false, uiHidden=false;
+  let presenter=false;
   function setPresenter(on){
     presenter = on;
     els.presBadge.classList.toggle('hidden', !on);
-    // Hide toolbar & footer in presenter mode
     document.querySelector('.toolbar').classList.toggle('hidden', on);
     document.querySelector('.footerNote').classList.toggle('hidden', on);
   }
@@ -452,12 +459,12 @@
   });
 
   // Tap-to-copy on all .value
-  document.querySelectorAll('.value').forEach(v => {
-    v.addEventListener('click', () => {
-      const t = v.textContent;
-      navigator.clipboard?.writeText(t);
-      v.animate([{opacity:1},{opacity:.3},{opacity:1}], {duration:220});
-    });
+  document.addEventListener('click', (e)=>{
+    const v = e.target.closest('.value');
+    if(!v) return;
+    const t = v.textContent;
+    navigator.clipboard?.writeText(t);
+    v.animate([{opacity:1},{opacity:.3},{opacity:1}], {duration:220});
   });
 
   // Long-press anywhere to toggle Presenter mode
@@ -477,7 +484,6 @@
   els.form.addEventListener('submit', (e)=>{
     e.preventDefault();
     const data = readEditor();
-    // Name preset automatically from Brand + Model
     const id = (data.brand||'Car') + ' ' + (data.model||'Preset');
     upsertPreset(id, data);
     render(data);
@@ -534,7 +540,6 @@
     const cur = getCurrent();
     if(cur){ render(cur); fillEditor(cur); }
     else { render(defaults); fillEditor(defaults); }
-    // If URL has ?imperial=1 or ?metric=1
     const params = new URLSearchParams(location.search);
     if(params.get('imperial')==='1'){ metric=false; els.toggleUnits.click(); }
     if(params.get('presenter')==='1'){ setPresenter(true); }
